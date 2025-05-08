@@ -10,6 +10,7 @@ LOG_FORMAT_STATUS = (
 )
 DT_FORMAT = '%d.%m.%Y %H:%M:%S'
 
+
 def configure_argument_parser(available_modes):
     '''Описание функций парсера.'''
     parser = argparse.ArgumentParser(description='Парсер документации Python')
@@ -31,6 +32,7 @@ def configure_argument_parser(available_modes):
         help='Дополнительные способы вывода данных'
     )
     return parser
+
 
 def configure_logging():
     '''Конфигурация логирования.'''

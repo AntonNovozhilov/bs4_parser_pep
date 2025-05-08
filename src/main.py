@@ -13,6 +13,7 @@ from constants import BASE_DIR, MAIN_DOC_URL, PEP_URL
 from outputs import control_output
 from utils import find_tag, find_tags, get_response
 
+
 def whats_new(session):
     '''Парсинг версий, названия и автора.'''
     whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
@@ -37,6 +38,7 @@ def whats_new(session):
         dl_text = dl.text.replace('\n', ' ')
         results.append((versilon_link, h1.text, dl_text))
     return results
+
 
 def latest_versions(session):
     '''Парсинг версий и ссылки на них.'''
@@ -65,6 +67,7 @@ def latest_versions(session):
             version = a_tag.text
     return results
 
+
 def download(session):
     '''Загружает архив с документацией Python в формате PDF A4.'''
     downloads_dir = BASE_DIR / 'downloads'
@@ -72,16 +75,17 @@ def download(session):
     response = get_response(session, downloads_url)
     soup = BeautifulSoup(response.text, features='lxml')
     table_tag = find_tag(soup, tag='table', attrs={"class": "docutils"})
-    pdf_a4_tag = find_tag(table_tag, tag='a', attrs={'href': re.compile(r'.+pdf-a4\.zip$')})
+    pdf_a4_tag = find_tag(table_tag,tag='a', attrs={'href': re.compile(r'.+pdf-a4\.zip$')})
     pdf_link = pdf_a4_tag['href']
     urlpdf = urljoin(downloads_url, pdf_link)
-    filename=urlpdf.split('/')[-1]
+    filename = urlpdf.split('/')[-1]
     downloads_dir.mkdir(exist_ok=True)
-    pdf_path=downloads_dir / filename
+    pdf_path = downloads_dir / filename
     response = session.get(urlpdf)
     with open(pdf_path, 'wb') as f:
         f.write(response.content)
     logging.info('Архив был загружен и сохранён: %s', pdf_path)
+
 
 def pars_tr(session):
     '''Парсинг тегов tr для статусов PEP.'''
@@ -95,6 +99,7 @@ def pars_tr(session):
         all_rows.extend(rows)
     return all_rows
 
+
 def abbr(session):
     '''Получаем все теги abbr.'''
     rows = pep(session)
@@ -104,6 +109,7 @@ def abbr(session):
         if abbr_tag and abbr_tag.has_attr('title'):
             abbr_list.append(abbr_tag['title'])
     return abbr_list
+
 
 def link(session):
     '''Получаем ссылки.'''
@@ -117,11 +123,13 @@ def link(session):
             list_links.append(fullurl)
     return list_links
 
-def pep(session):
+
+def pep_count(session):
     '''Получаем все статусы переходя по ссылкам и сравниваем с ожидаемыми.'''
     status_list = deque(abbr(session))
     peplink = link(session)
-    actlink = acclink = drlink = dlink = flink = plink = rlink = slink = wlink = 0
+    actlink = acclink = drlink = dlink = \
+    flink = plink = rlink = slink = wlink = 0
     results = [('Статус', 'Количество')]
     status_pep = ['Active',
                   'Accepted',
@@ -151,8 +159,7 @@ def pep(session):
             if real_status not in expected_list:
                 logging.info(LOG_FORMAT_STATUS,
                              links, real_status,
-                             status_list[0] if status_list else 'отсутствует'
-                )
+                             status_list[0] if status_list else 'отсутствует')
             if real_status == status_pep[0]:
                 actlink += 1
             elif real_status == status_pep[1]:
@@ -194,18 +201,29 @@ def pep(session):
                 slink += 1
             elif real_status == status_pep[8]:
                 wlink += 1
-            count.extend([actlink, acclink, drlink, dlink, flink, plink, rlink, slink, wlink])
+            count.extend([
+                actlink,
+                acclink,
+                drlink,
+                dlink,
+                flink,
+                plink,
+                rlink,
+                slink,
+                wlink])
     for status, value in zip(status_pep, count):
         results.append((status, value))
     results.append(('total', sum(count)))
     return results
 
+
 MODE_TO_FUNCTION = {
     'whats-new': whats_new,
     'latest-versions': latest_versions,
     'download': download,
-    'pep': pep
+    'pep': pep_count
 }
+
 
 def main():
     '''Основная функция.'''
