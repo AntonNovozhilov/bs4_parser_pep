@@ -1,32 +1,29 @@
-import datetime as dt
 import csv
+import datetime as dt
 import logging
 
 from prettytable import PrettyTable
-from constants import NAMEDATE, BASE_DIR
 
-
+from constants import BASE_DIR, NAMEDATE
 
 
 def control_output(results, cli_args):
-    """Docstring"""
+    '''Задаем атрибуты.'''
     output = cli_args.output
     if output == 'pretty':
         pretty_output(results)
-    if output == 'file':
+    elif output == 'file':
         file_output(results, cli_args)
     else:
         default_output(results)
- 
-def default_output(results):
-    """Docstring"""
 
+def default_output(results):
+    '''Реагирование на отсутвие атрибута.'''
     for row in results:
         print(*row)
 
 def pretty_output(results):
-    """Docstring"""
-
+    '''Создаем таблицу.'''
     table = PrettyTable()
     table.field_names = results[0]
     table.align = 'l'
@@ -34,19 +31,15 @@ def pretty_output(results):
     print(table)
 
 def file_output(results, cli_args):
-    """Docstring"""
-
-    results_dir = BASE_DIR / 'fils'
-
+    '''Создаем файл с данными в формате csv.'''
+    results_dir = BASE_DIR / 'results'
     results_dir.mkdir(exist_ok=True)
-
     parse_mode = cli_args.mode
-
     now = dt.datetime.now()
     now_formated = now.strftime(NAMEDATE)
-    file_name = f'{parse_mode}-{now_formated}.csv'
+    file_name = f'{parse_mode}_{now_formated}.csv'
     file_path = results_dir / file_name
     with open(file_path, 'w', encoding='utf-8') as f:
         writer = csv.writer(f, dialect='unix')
         writer.writerows(results)
-    logging.info(f'Файл с результатами был сохранён: {file_path}') 
+    logging.info('Файл с результатами был сохранён: %s', file_path)
