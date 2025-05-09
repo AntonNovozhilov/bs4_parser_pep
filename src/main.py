@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from configs import (LOG_FORMAT_STATUS, configure_argument_parser,
                      configure_logging)
-from constants import BASE_DIR, MAIN_DOC_URL, PEP_URL
+from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, PEP_URL
 from outputs import control_output
 from utils import find_tag, find_tags, get_response
 
@@ -107,8 +107,9 @@ def abbr(session):
     abbr_list = []
     for row in rows:
         abbr_tag = row.find('abbr')
-        if abbr_tag and abbr_tag.has_attr('title'):
-            abbr_list.append(abbr_tag['title'])
+        if abbr_tag and abbr_tag.text:
+            abbr_list.append(abbr_tag.text[1:])
+    abbr_list.append('')
     return abbr_list
 
 
@@ -118,7 +119,7 @@ def link(session):
     list_links = []
     for links in row:
         urllink = links.find('a', class_='pep reference internal')
-        if urllink and urllink.text.isdigit():
+        if urllink and urllink.text:
             href = urllink['href']
             fullurl = urljoin(PEP_URL, href)
             list_links.append(fullurl)
@@ -138,52 +139,32 @@ def get_real_status(session, url):
     return None
 
 
-def get_expected_statuses(status_list):
-    '''Получаем статус из заданного списка.'''
-    if status_list:
-        raw = status_list.popleft()
-        return [s.strip() for s in raw.split(',')]
-    return []
-
-
-def pep_count(session):
+def pep(session):
     '''Получаем все статусы переходя по ссылкам и сравниваем с ожидаемыми.'''
-    status_list = deque(abbr(session))
+    status_list = abbr(session)
     peplink = link(session)
     results = [('Статус', 'Количество')]
-    status_pep = [
-        'Active',
-        'Accepted',
-        'Deferred',
-        'Draft',
-        'Final',
-        'Provisional',
-        'Rejected',
-        'Superseded',
-        'Withdrawn'
-    ]
-    status_counter = {status: 0 for status in status_pep}
-    for links in tqdm(peplink, desc='Проверка'):
+    status_counter = {status: 0 for status in EXPECTED_STATUS}
+    for i, links in enumerate(tqdm(peplink, desc='Проверка')):
         real_status = get_real_status(session, links)
-        expected_statuses = get_expected_statuses(status_list)
+        current_status = status_list[i]
+        valid_statuses = EXPECTED_STATUS.get(current_status, ())
         if real_status:
-            if real_status not in expected_statuses:
+            matched = False
+            for key, value in EXPECTED_STATUS.items():
+                if real_status in value:
+                    status_counter[key] += 1
+                    matched = True
+                    break
+            if not matched:
                 logging.info(
                     LOG_FORMAT_STATUS,
                     links,
                     real_status,
-                    status_list[0] if status_list else 'отсутствует'
+                    valid_statuses if status_list else 'отсутствует'
                 )
-            if real_status in status_counter:
-                status_counter[real_status] += 1
-        else:
-            logging.info(
-                LOG_FORMAT_STATUS,
-                links, real_status,
-                status_list[0] if status_list else 'отсутствует'
-            )
-    for status in status_pep:
-        results.append((status, status_counter[real_status]))
+    for status, count in status_counter.items():
+        results.append((status, count))
     results.append(('Total', sum(status_counter.values())))
     return results
 
@@ -192,7 +173,7 @@ MODE_TO_FUNCTION = {
     'whats-new': whats_new,
     'latest-versions': latest_versions,
     'download': download,
-    'pep': pep_count,
+    'pep': pep,
 }
 
 
