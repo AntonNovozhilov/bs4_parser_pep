@@ -1,6 +1,5 @@
 import logging
 import re
-from collections import deque
 from urllib.parse import urljoin
 
 import requests_cache
