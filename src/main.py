@@ -75,8 +75,10 @@ def download(session):
     if response:
         soup = BeautifulSoup(response.text, features='lxml')
         table_tag = find_tag(soup, tag='table', attrs={"class": "docutils"})
-        pdf_a4_tag = find_tag(table_tag, tag='a',
-                            attrs={'href': re.compile(r'.+pdf-a4\.zip$')})
+        pdf_a4_tag = find_tag(
+            table_tag, tag='a',
+            attrs={'href': re.compile(r'.+pdf-a4\.zip$')}
+        )
         pdf_link = pdf_a4_tag['href']
         urlpdf = urljoin(downloads_url, pdf_link)
         filename = urlpdf.split('/')[-1]
@@ -166,10 +168,11 @@ def pep(session):
         else:
             loggind_list.append(
                 LOG_FORMAT_STATUS.format(
-                links,
-                real_status,
-                valid_statuses if status_list else 'отсутствует'
-            ))
+                    links,
+                    real_status,
+                    valid_statuses if status_list else 'отсутствует'
+                )
+            )
             found = False
             for key, valid_values in EXPECTED_STATUS.items():
                 if real_status in valid_values:
